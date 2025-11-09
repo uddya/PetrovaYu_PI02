@@ -1,0 +1,19 @@
+#include <iostream>
+
+double power(double x, int n) {
+    if (n == 0) {
+        return 1; 
+    } else {
+        return x * power(x, n - 1); 
+    }
+}
+
+int main() {
+    double x = 2.0;
+    int n = 3;
+    std::cout << "power(" << x << ", " << n << ") = " << power(x, n) << std::endl;
+    return 0;
+}
+
+//Вывод
+//power(2, 3) = 8
