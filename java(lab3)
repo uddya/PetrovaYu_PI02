@@ -1,0 +1,739 @@
+//Бинарная куча
+
+import java.util.Arrays;
+
+public class BinaryHeap<T extends Comparable<T>> {
+    private T[] heap;       // Массив для хранения элементов
+    private int size;       // Текущий размер кучи
+    private final int CAPACITY; // Максимальная вместимость кучи
+
+    @SuppressWarnings("unchecked") // Безопасное создание массива generic-типа
+    public BinaryHeap(int capacity) {
+        this.CAPACITY = capacity;
+        this.heap = (T[]) new Comparable[capacity];
+        this.size = 0;
+    }
+
+    // Получение родителя
+    private int parent(int pos) {
+        return (pos - 1) / 2;
+    }
+
+    // Получение левого сына
+    private int leftChild(int pos) {
+        return (2 * pos) + 1;
+    }
+
+    // Получение правого сына
+    private int rightChild(int pos) {
+        return (2 * pos) + 2;
+    }
+
+    // Восстановление порядка кучи снизу вверх
+    private void swim(int pos) {
+        while (pos > 0 && heap[pos].compareTo(heap[parent(pos)]) > 0) {
+            swap(pos, parent(pos));
+            pos = parent(pos);
+        }
+    }
+
+    // Восстановление порядка кучи сверху вниз
+    private void sink(int pos) {
+        while (true) {
+            int largest = pos;
+            int left = leftChild(pos);
+            int right = rightChild(pos);
+
+            if (left < size && heap[left].compareTo(heap[largest]) > 0) {
+                largest = left;
+            }
+            if (right < size && heap[right].compareTo(heap[largest]) > 0) {
+                largest = right;
+            }
+
+            if (largest != pos) {
+                swap(pos, largest);
+                pos = largest;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Обмен позиций элементов
+    private void swap(int first, int second) {
+        T tmp = heap[first];
+        heap[first] = heap[second];
+        heap[second] = tmp;
+    }
+
+    // Вставка элемента в кучу
+    public void insert(T element) {
+        if (size == CAPACITY) {
+            throw new IllegalStateException("Heap is full");
+        }
+        heap[size++] = element;
+        swim(size - 1);
+    }
+
+    // Извлечение максимального элемента
+    public T extractMax() {
+        if (size == 0) {
+            throw new NoSuchElementException("Heap is empty");
+        }
+        T max = heap[0];
+        heap[0] = heap[--size];
+        sink(0);
+        return max;
+    }
+
+    // Получение максимального элемента
+    public T peekMax() {
+        if (size == 0) {
+            throw new NoSuchElementException("Heap is empty");
+        }
+        return heap[0];
+    }
+
+    // Увеличение приоритета элемента
+    public void increaseKey(int position, T newValue) {
+        if (position >= size || position < 0) {
+            throw new ArrayIndexOutOfBoundsException("Invalid position");
+        }
+        heap[position] = newValue;
+        swim(position);
+    }
+
+    // Преобразовать обычный массив в кучу
+    public void buildHeap(T[] arr) {
+        if (arr.length > CAPACITY) {
+            throw new IllegalArgumentException("Input array too large");
+        }
+        System.arraycopy(arr, 0, heap, 0, arr.length);
+        size = arr.length;
+        for (int i = size / 2 - 1; i >= 0; i--) {
+            sink(i);
+        }
+    }
+
+    // Строковое представление кучи
+    @Override
+    public String toString() {
+        return Arrays.toString(Arrays.copyOfRange(heap, 0, size));
+    }
+
+    // Проверка пустоты
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    // Текущий размер кучи
+    public int getSize() {
+        return size;
+    }
+}
+
+// Пример использования
+public class Main {
+    public static void main(String[] args) {
+        BinaryHeap<Integer> heap = new BinaryHeap<>(10);
+        heap.insert(10);
+        heap.insert(20);
+        heap.insert(15);
+        heap.insert(30);
+        heap.insert(5);
+
+        System.out.println("Initial Heap: " + heap);
+        System.out.println("Maximum Element: " + heap.peekMax());
+
+        heap.increaseKey(3, 40); // Повышаем приоритет четвертого элемента
+        System.out.println("After increasing priority: " + heap);
+
+        System.out.println("Extracted Max: " + heap.extractMax());
+        System.out.println("Final Heap: " + heap);
+    }
+}
+
+//Вывод
+//Initial Heap: [30, 20, 15, 10, 5]
+//Maximum Element: 30
+//After increasing priority: [40, 20, 15, 10, 5]
+//Extracted Max: 40
+//Final Heap: [20, 10, 15, 5]
+
+//Биноминальная куча
+
+import java.util.ArrayList;
+import java.util.List;
+
+// Узел биноминального дерева
+class BinomialNode<T extends Comparable<T>> {
+    T key;                        // Значение узла
+    BinomialNode<T> parent;       // Родитель
+    BinomialNode<T> child;        // Первый ребенок
+    BinomialNode<T> sibling;      // Брат справа
+    int degree;                   // Ранг дерева (количество детей)
+
+    BinomialNode(T key) {
+        this.key = key;
+        this.parent = null;
+        this.child = null;
+        this.sibling = null;
+        this.degree = 0;
+    }
+}
+
+// Класс биноминальной кучи
+public class BinomialHeap<T extends Comparable<T>> {
+    private List<BinomialNode<T>> trees; // Коллекция биноминальных деревьев
+
+    public BinomialHeap() {
+        trees = new ArrayList<>();
+    }
+
+    // Присоединение дерева к другому дереву
+    private BinomialNode<T> link(BinomialNode<T> y, BinomialNode<T> x) {
+        y.parent = x;
+        y.sibling = x.child;
+        x.child = y;
+        x.degree++;
+        return x;
+    }
+
+    // Объединение двух куч
+    public void union(BinomialHeap<T> other) {
+        trees.addAll(other.trees);
+        other.trees.clear();
+        consolidate();
+    }
+
+    // Вставка нового элемента
+    public void insert(T key) {
+        BinomialNode<T> newNode = new BinomialNode<>(key);
+        BinomialHeap<T> singletonHeap = new BinomialHeap<>();
+        singletonHeap.trees.add(newNode);
+        union(singletonHeap);
+    }
+
+    // Нахождение минимального элемента
+    public T findMinimum() {
+        T minKey = null;
+        for (BinomialNode<T> tree : trees) {
+            if (minKey == null || (tree.key.compareTo(minKey) < 0)) {
+                minKey = tree.key;
+            }
+        }
+        return minKey;
+    }
+
+    // Удаление минимального элемента
+    public T extractMinimum() {
+        T minKey = findMinimum();
+        BinomialNode<T> minNode = null;
+        for (BinomialNode<T> tree : trees) {
+            if (tree.key.equals(minKey)) {
+                minNode = tree;
+                break;
+            }
+        }
+        if (minNode != null) {
+            trees.remove(minNode);
+            if (minNode.child != null) {
+                BinomialHeap<T> childHeap = new BinomialHeap<>();
+                childHeap.trees.addAll(getChildren(minNode));
+                union(childHeap);
+            }
+            consolidate();
+        }
+        return minKey;
+    }
+
+    // Получить детей дерева
+    private List<BinomialNode<T>> getChildren(BinomialNode<T> node) {
+        List<BinomialNode<T>> children = new ArrayList<>();
+        BinomialNode<T> current = node.child;
+        while (current != null) {
+            children.add(current);
+            current = current.sibling;
+        }
+        return children;
+    }
+
+    // Перекомпоновка кучи после изменений
+    private void consolidate() {
+        int maxDegree = trees.stream().mapToInt(node -> node.degree).max().orElse(-1) + 1;
+        BinomialNode<T>[] aux = new BinomialNode[maxDegree];
+
+        for (BinomialNode<T> tree : trees) {
+            int d = tree.degree;
+            while (aux[d] != null) {
+                BinomialNode<T> other = aux[d];
+                if (other.key.compareTo(tree.key) < 0) {
+                    tree = link(tree, other);
+                } else {
+                    tree = link(other, tree);
+                }
+                aux[d] = null;
+                d++;
+            }
+            aux[d] = tree;
+        }
+
+        trees.clear();
+        for (BinomialNode<T> node : aux) {
+            if (node != null) {
+                trees.add(node);
+            }
+        }
+    }
+
+    // Проверка пустоты
+    public boolean isEmpty() {
+        return trees.isEmpty();
+    }
+
+    // Количество элементов
+    public int size() {
+        return trees.stream().mapToInt(node -> (1 << node.degree)).sum();
+    }
+
+    // Пример использования
+    public static void main(String[] args) {
+        BinomialHeap<Integer> heap = new BinomialHeap<>();
+        heap.insert(10);
+        heap.insert(20);
+        heap.insert(5);
+        heap.insert(15);
+
+        System.out.println("Минимальный элемент: " + heap.findMinimum());
+        System.out.println("Количество элементов: " + heap.size());
+
+        System.out.println("Извлеченный минимальный элемент: " + heap.extractMinimum());
+        System.out.println("Новый минимальный элемент: " + heap.findMinimum());
+    }
+}
+
+//Вывод
+//Минимальный элемент: 5
+//Количество элементов: 4
+//Извлеченный минимальный элемент: 5
+//Новый минимальный элемент: 10
+
+//Куча Фибоначчи
+
+import java.util.*;
+
+// Узел кучи Фибоначчи
+class FibonacciNode<T extends Comparable<T>> {
+    T key;                           // Ключевое значение
+    FibonacciNode<T> parent;         // Родительский узел
+    FibonacciNode<T> child;          // Первый ребенок
+    FibonacciNode<T> left;           // Предшествующий узел
+    FibonacciNode<T> right;          // Следующий узел
+    int degree;                      // Степень узла (количество детей)
+    boolean mark;                    // Отмечен ли узел для вырезания
+
+    FibonacciNode(T key) {
+        this.key = key;
+        this.parent = null;
+        this.child = null;
+        this.left = this;
+        this.right = this;
+        this.degree = 0;
+        this.mark = false;
+    }
+
+    // Добавление узла в кольцо братьев
+    void addSibling(FibonacciNode<T> node) {
+        node.right = this.right;
+        node.left = this;
+        this.right.left = node;
+        this.right = node;
+    }
+
+    // Удаление узла из кольца братьев
+    void removeSelf() {
+        this.left.right = this.right;
+        this.right.left = this.left;
+    }
+
+    // Установить данное кольцо как кольцо брата для узла
+    void setAsSiblingRing() {
+        this.left = this;
+        this.right = this;
+    }
+}
+
+// Куча Фибоначчи
+public class FibonacciHeap<T extends Comparable<T>> {
+    private FibonacciNode<T> minNode; // Минимальный узел
+    private int size;                 // Количество узлов в куче
+
+    // Создание новой кучи
+    public FibonacciHeap() {
+        this.minNode = null;
+        this.size = 0;
+    }
+
+    // Проверка пустоты
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    // Вставка нового элемента
+    public void insert(T key) {
+        FibonacciNode<T> newNode = new FibonacciNode<>(key);
+        mergeWithSingleNode(newNode);
+        size++;
+    }
+
+    // Объединение одной ноды с главной кучей
+    private void mergeWithSingleNode(FibonacciNode<T> node) {
+        if (minNode == null) {
+            minNode = node;
+        } else {
+            minNode.addSibling(node);
+            if (node.key.compareTo(minNode.key) < 0) {
+                minNode = node;
+            }
+        }
+    }
+
+    // Извлечение минимального элемента
+    public T extractMin() {
+        if (isEmpty()) {
+            throw new NoSuchElementException("Heap is empty");
+        }
+
+        FibonacciNode<T> min = minNode;
+        T result = min.key;
+
+        // Обработка детёнышей минимального узла
+        if (min.child != null) {
+            FibonacciNode<T> current = min.child;
+            do {
+                FibonacciNode<T> next = current.right;
+                current.setAsSiblingRing();
+                minNode.addSibling(current);
+                current.parent = null;
+                current = next;
+            } while (current != min.child);
+        }
+
+        // Удаление минимального узла
+        min.removeSelf();
+        if (min == min.right) {
+            minNode = null;
+        } else {
+            minNode = min.right;
+            consolidate();
+        }
+        size--;
+        return result;
+    }
+
+    // Объединение куч
+    public void union(FibonacciHeap<T> other) {
+        if (this.isEmpty()) {
+            this.minNode = other.minNode;
+            this.size = other.size;
+        } else if (!other.isEmpty()) {
+            this.minNode.addSibling(other.minNode);
+            if (other.minNode.key.compareTo(this.minNode.key) < 0) {
+                this.minNode = other.minNode;
+            }
+            this.size += other.size;
+        }
+        other.minNode = null;
+        other.size = 0;
+    }
+
+    // Сокращение кучи
+    private void consolidate() {
+        int maxDegree = (int)(Math.log(size) / Math.log(2)) + 1;
+        FibonacciNode<T>[] degreeBuckets = new FibonacciNode[maxDegree];
+
+        // Сбор узлов по степеням
+        FibonacciNode<T> current = minNode;
+        do {
+            FibonacciNode<T> next = current.right;
+            int d = current.degree;
+            while (degreeBuckets[d] != null) {
+                FibonacciNode<T> other = degreeBuckets[d];
+                if (current.key.compareTo(other.key) > 0) {
+                    FibonacciNode<T> temp = current;
+                    current = other;
+                    other = temp;
+                }
+                link(other, current);
+                degreeBuckets[d] = null;
+                d++;
+            }
+            degreeBuckets[d] = current;
+            current = next;
+        } while (current != minNode);
+
+        // Обновление минимального узла
+        minNode = null;
+        for (FibonacciNode<T> node : degreeBuckets) {
+            if (node != null) {
+                if (minNode == null || node.key.compareTo(minNode.key) < 0) {
+                    minNode = node;
+                }
+            }
+        }
+    }
+
+    // Соединение двух узлов
+    private void link(FibonacciNode<T> y, FibonacciNode<T> x) {
+        y.removeSelf();
+        y.parent = x;
+        y.setAsSiblingRing();
+        if (x.child == null) {
+            x.child = y;
+        } else {
+            x.child.addSibling(y);
+        }
+        x.degree++;
+        y.mark = false;
+    }
+
+    // Уменьшение ключа
+    public void decreaseKey(FibonacciNode<T> node, T newKey) {
+        if (newKey.compareTo(node.key) > 0) {
+            throw new IllegalArgumentException("New key should be less than the current one");
+        }
+        node.key = newKey;
+        FibonacciNode<T> parent = node.parent;
+        if (parent != null && node.key.compareTo(parent.key) < 0) {
+            cut(node, parent);
+            cascadeCut(parent);
+        }
+        if (node.key.compareTo(minNode.key) < 0) {
+            minNode = node;
+        }
+    }
+
+    // Отрезать узел от родителя
+    private void cut(FibonacciNode<T> node, FibonacciNode<T> parent) {
+        node.removeSelf();
+        parent.degree--;
+        if (parent.child == node) {
+            parent.child = node.right;
+        }
+        if (parent.degree == 0) {
+            parent.child = null;
+        }
+        node.parent = null;
+        node.mark = false;
+        minNode.addSibling(node);
+    }
+
+    // Каскадное отсечение
+    private void cascadeCut(FibonacciNode<T> node) {
+        FibonacciNode<T> parent = node.parent;
+        if (parent != null) {
+            if (!node.mark) {
+                node.mark = true;
+            } else {
+                cut(node, parent);
+                cascadeCut(parent);
+            }
+        }
+    }
+
+    // Размер кучи
+    public int size() {
+        return size;
+    }
+
+    // Получение минимального элемента
+    public T getMin() {
+        if (isEmpty()) {
+            throw new NoSuchElementException("Heap is empty");
+        }
+        return minNode.key;
+    }
+
+    // Удаление узла
+    public void remove(FibonacciNode<T> node) {
+        decreaseKey(node, null); // Установка минимально возможного ключа
+        extractMin();            // Извлечение нового минимального элемента
+    }
+
+    // Пример использования
+    public static void main(String[] args) {
+        FibonacciHeap<Integer> heap = new FibonacciHeap<>();
+        heap.insert(10);
+        heap.insert(20);
+        heap.insert(5);
+        heap.insert(15);
+
+        System.out.println("Минимальный элемент: " + heap.getMin());
+        System.out.println("Извлеченный минимальный элемент: " + heap.extractMin());
+        System.out.println("Новый минимальный элемент: " + heap.getMin());
+    }
+}
+
+//Вывод
+//Минимальный элемент: 5
+//Извлеченный минимальный элемент: 5
+//Новый минимальный элемент: 10
+
+//Хэш-таблицы
+
+import java.util.LinkedList;
+import java.util.Objects;
+
+// Класс Pair для хранения ключа и значения
+class Pair<K, V> {
+    K key;
+    V value;
+
+    public Pair(K key, V value) {
+        this.key = key;
+        this.value = value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof Pair<?, ?>) {
+            Pair<?, ?> pair = (Pair<?, ?>) o;
+            return Objects.equals(pair.key, this.key);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(key);
+    }
+}
+
+// Наша собственная реализация хэш-таблицы
+public class MyHashTable<K, V> {
+    private LinkedList<Pair<K, V>>[] buckets; // Массив ведер (списки пар ключ-значение)
+    private int size;                         // Текущий размер таблицы
+
+    // Коэффициент загрузки, при превышении которого начинается ресайз
+    private static final double LOAD_FACTOR = 0.75;
+
+    // Начальный размер таблицы
+    private static final int INITIAL_CAPACITY = 16;
+
+    // Конструктор
+    @SuppressWarnings("unchecked")
+    public MyHashTable() {
+        buckets = new LinkedList[INITIAL_CAPACITY];
+        size = 0;
+    }
+
+    // Вставка пары ключ-значение
+    public void put(K key, V value) {
+        resizeIfNeeded();
+        int index = calculateHash(key);
+        if (buckets[index] == null) {
+            buckets[index] = new LinkedList<>();
+        }
+        for (Pair<K, V> entry : buckets[index]) {
+            if (entry.key.equals(key)) {
+                entry.value = value; // Обновляем значение, если ключ уже есть
+                return;
+            }
+        }
+        buckets[index].add(new Pair<>(key, value)); // Добавляем новую пару
+        size++;
+    }
+
+    // Получение значения по ключу
+    public V get(K key) {
+        int index = calculateHash(key);
+        if (buckets[index] != null) {
+            for (Pair<K, V> entry : buckets[index]) {
+                if (entry.key.equals(key)) {
+                    return entry.value;
+                }
+            }
+        }
+        return null;
+    }
+
+    // Удаление пары по ключу
+    public void remove(K key) {
+        int index = calculateHash(key);
+        if (buckets[index] != null) {
+            for (Pair<K, V> entry : buckets[index]) {
+                if (entry.key.equals(key)) {
+                    buckets[index].remove(entry);
+                    size--;
+                    return;
+                }
+            }
+        }
+    }
+
+    // Расчет индекса по ключу
+    private int calculateHash(K key) {
+        return Math.abs(key.hashCode()) % buckets.length;
+    }
+
+    // Проверка необходимости увеличения размера таблицы
+    private void resizeIfNeeded() {
+        if ((double) size / buckets.length > LOAD_FACTOR) {
+            resize(buckets.length * 2);
+        }
+    }
+
+    // Увеличение размера таблицы
+    @SuppressWarnings("unchecked")
+    private void resize(int newCapacity) {
+        LinkedList<Pair<K, V>>[] newBuckets = new LinkedList[newCapacity];
+        for (LinkedList<Pair<K, V>> bucket : buckets) {
+            if (bucket != null) {
+                for (Pair<K, V> entry : bucket) {
+                    int index = calculateHash(entry.key);
+                    if (newBuckets[index] == null) {
+                        newBuckets[index] = new LinkedList<>();
+                    }
+                    newBuckets[index].add(entry);
+                }
+            }
+        }
+        buckets = newBuckets;
+    }
+
+    // Получение текущего размера
+    public int size() {
+        return size;
+    }
+
+    // Проверка пустоты
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    // Очистка таблицы
+    public void clear() {
+        Arrays.fill(buckets, null);
+        size = 0;
+    }
+
+    // Тестирование хэш-таблицы
+    public static void main(String[] args) {
+        MyHashTable<String, Integer> myHashTable = new MyHashTable<>();
+        myHashTable.put("Apple", 10);
+        myHashTable.put("Banana", 20);
+        myHashTable.put("Cherry", 30);
+
+        System.out.println(myHashTable.get("Apple")); // Output: 10
+        System.out.println(myHashTable.get("Orange")); // Output: null
+
+        myHashTable.remove("Banana");
+        System.out.println(myHashTable.get("Banana")); // Output: null
+    }
+}
+
+//Вывод
+//10
+//null
+//null
