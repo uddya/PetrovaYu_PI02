@@ -1,0 +1,654 @@
+//Бинарная куча
+
+#include <iostream>
+#include <vector>
+
+class BinaryMaxHeap {
+private:
+    std::vector<int> data;  // Данные хранятся в виде вектора
+
+    // Вспомогательные функции для перемещения элементов
+    void swim(int k) {
+        while (k > 0 && data[(k - 1) / 2] < data[k]) {
+            std::swap(data[k], data[(k - 1) / 2]);
+            k = (k - 1) / 2;
+        }
+    }
+
+    void sink(int k) {
+        int N = data.size();
+        while (2*k+1 < N) {
+            int j = 2*k+1;  // Левый ребёнок
+            if (j+1 < N && data[j] < data[j+1]) ++j;  // Правый ребёнок существует и больше
+            if (data[k] >= data[j]) break;  // Уже всё хорошо
+            std::swap(data[k], data[j]);  // Опускаемся ниже
+            k = j;
+        }
+    }
+
+public:
+    // Конструктор
+    BinaryMaxHeap() : data({}) {}
+
+    // Добавление элемента в кучу
+    void push(int val) {
+        data.push_back(val);
+        swim(data.size()-1);  // Восстанавливаем свойства кучи снизу-вверх
+    }
+
+    // Получение максимального элемента (без удаления)
+    int top() const {
+        if (empty()) throw std::out_of_range("Heap is empty");
+        return data.front();
+    }
+
+    // Удаление максимального элемента
+    void pop() {
+        if (empty()) throw std::out_of_range("Heap is empty");
+        std::swap(data.front(), data.back());
+        data.pop_back();
+        sink(0);  // Восстанавливаем свойства сверху-вниз
+    }
+
+    // Проверка пустоты
+    bool empty() const {
+        return data.empty();
+    }
+
+    // Размер кучи
+    size_t size() const {
+        return data.size();
+    }
+};
+
+// Пример использования
+int main() {
+    BinaryMaxHeap max_heap;
+
+    // Заполнение кучи
+    max_heap.push(10);
+    max_heap.push(20);
+    max_heap.push(15);
+    max_heap.push(30);
+    max_heap.push(5);
+
+    // Показываем максимальный элемент
+    std::cout << "Максимальный элемент: " << max_heap.top() << '\n';  
+
+    // Удаляем максимум
+    max_heap.pop();
+    std::cout << "Новый максимальный элемент: " << max_heap.top() << '\n'; 
+
+    return 0;
+}
+//Вывод
+//Максимальный элемент: 30
+//Новый максимальный элемент: 20
+
+//Биноминальная куча
+
+#include <iostream>
+#include <vector>
+
+// Узел биноминального дерева
+struct BinomialNode {
+    int key;                   // Значение узла
+    BinomialNode* parent;      // Родитель
+    BinomialNode* child;       // Первый ребенок
+    BinomialNode* sibling;     // Следующий брат
+    int degree;                // Степень (ранг) дерева
+
+    BinomialNode(int k) : key(k), parent(nullptr), child(nullptr),
+                          sibling(nullptr), degree(0) {}
+};
+
+// Биноминальная куча
+class BinomialHeap {
+private:
+    BinomialNode* head;          // Начало списка деревьев
+    int size;                     // Текущий размер кучи
+
+    // Соединение двух узлов в одно дерево
+    BinomialNode* combineTrees(BinomialNode* a, BinomialNode* b) {
+        if (a->key > b->key) std::swap(a, b);
+        b->parent = a;
+        b->sibling = a->child;
+        a->child = b;
+        a->degree++;
+        return a;
+    }
+
+    // Объединение двух списков деревьев
+    BinomialNode* mergeLists(BinomialNode* a, BinomialNode* b) {
+        if (!a) return b;
+        if (!b) return a;
+        if (a->degree <= b->degree) {
+            a->sibling = mergeLists(a->sibling, b);
+            return a;
+        } else {
+            b->sibling = mergeLists(a, b->sibling);
+            return b;
+        }
+    }
+
+    // Преобразование списка деревьев после объединения
+    BinomialNode* consolidate() {
+        std::vector<BinomialNode*> degrees(size, nullptr);
+        BinomialNode* current = head;
+        while (current) {
+            BinomialNode* next = current->sibling;
+            int deg = current->degree;
+            while (degrees[deg]) {
+                current = combineTrees(current, degrees[deg]);
+                degrees[deg] = nullptr;
+                deg = current->degree;
+            }
+            degrees[deg] = current;
+            current = next;
+        }
+        BinomialNode* newHead = nullptr;
+        for (auto &node : degrees) {
+            if (node) {
+                node->sibling = newHead;
+                newHead = node;
+            }
+        }
+        return newHead;
+    }
+
+public:
+    BinomialHeap() : head(nullptr), size(0) {}
+
+    ~BinomialHeap() {
+        clear();
+    }
+
+    // Вставка нового элемента
+    void insert(int key) {
+        BinomialNode* newNode = new BinomialNode(key);
+        BinomialHeap singleHeap;
+        singleHeap.head = newNode;
+        singleHeap.size = 1;
+        this->unionHeaps(singleHeap);
+    }
+
+    // Объединение двух куч
+    void unionHeaps(BinomialHeap& another) {
+        head = mergeLists(head, another.head);
+        head = consolidate();
+        size += another.size;
+        another.head = nullptr;
+        another.size = 0;
+    }
+
+    // Поиск минимального элемента
+    int findMin() const {
+        if (!head) throw std::runtime_error("Empty heap");
+        int minKey = INT_MAX;
+        BinomialNode* current = head;
+        do {
+            if (current->key < minKey) minKey = current->key;
+            current = current->sibling;
+        } while (current != head);
+        return minKey;
+    }
+
+    // Извлечение минимального элемента
+    int extractMin() {
+        if (!head) throw std::runtime_error("Empty heap");
+        BinomialNode* minNode = nullptr;
+        BinomialNode* current = head;
+        do {
+            if ((!minNode || current->key < minNode->key)) minNode = current;
+            current = current->sibling;
+        } while (current != head);
+
+        // Отделяем детей минимального узла
+        BinomialNode* oldChild = minNode->child;
+        BinomialNode* lastChild = nullptr;
+        while (oldChild) {
+            oldChild->parent = nullptr;
+            lastChild = oldChild;
+            oldChild = oldChild->sibling;
+            lastChild->sibling = nullptr;
+        }
+
+        // Удаляем минимальное дерево
+        if (minNode == head) {
+            head = minNode->sibling;
+        } else {
+            BinomialNode* prev = head;
+            while (prev->sibling != minNode) prev = prev->sibling;
+            prev->sibling = minNode->sibling;
+        }
+        delete minNode;
+        size--;
+
+        // Если остались дети, добавляем их в общий список
+        if (lastChild) {
+            BinomialHeap childHeap;
+            childHeap.head = lastChild;
+            childHeap.size = minNode->degree;
+            this->unionHeaps(childHeap);
+        }
+
+        // Пересобираем структуру
+        head = consolidate();
+        return minNode->key;
+    }
+
+    // Освобождаем всю память
+    void clear() {
+        if (!head) return;
+        BinomialNode* current = head;
+        do {
+            BinomialNode* next = current->sibling;
+            deleteSubtree(current);
+            current = next;
+        } while (current != head);
+        head = nullptr;
+        size = 0;
+    }
+
+    // Рекурсивное освобождение всей подструктуры
+    void deleteSubtree(BinomialNode* node) {
+        if (!node) return;
+        BinomialNode* child = node->child;
+        while (child) {
+            BinomialNode* next = child->sibling;
+            deleteSubtree(child);
+            child = next;
+        }
+        delete node;
+    }
+
+    // Печать содержимого (отладочная функция)
+    void print() const {
+        if (!head) return;
+        BinomialNode* current = head;
+        do {
+            std::cout << "Tree with degree " << current->degree << ": ";
+            printTree(current);
+            std::cout << "\n";
+            current = current->sibling;
+        } while (current != head);
+    }
+
+    // Рекурсивная печать конкретного дерева
+    void printTree(const BinomialNode* node, int depth = 0) const {
+        if (!node) return;
+        std::string indent(depth * 2, ' ');
+        std::cout << indent << node->key << "\n";
+        BinomialNode* child = node->child;
+        while (child) {
+            printTree(child, depth + 1);
+            child = child->sibling;
+        }
+    }
+};
+
+// Пример использования
+int main() {
+    BinomialHeap heap;
+    heap.insert(10);
+    heap.insert(20);
+    heap.insert(5);
+    heap.insert(15);
+    heap.print();              // Распечатать содержимое кучи
+    std::cout << "Минимальный элемент: " << heap.findMin() << "\n";  // Найти минимальный элемент
+    std::cout << "Извлечено: " << heap.extractMin() << "\n";         // Извлечь минимальный элемент
+    heap.print();              // Посмотреть на остаток кучи
+    return 0;
+}
+//Вывод
+//Минимальный элемент: 5
+//Извлечено: 5
+
+//Куча  Фибоначчи
+
+#include <iostream>
+#include <algorithm>
+#include <utility>
+#include <vector>
+
+// Узел кучи Фибоначчи
+struct FiboNode {
+    int key;                 // Значение узла
+    FiboNode* parent;        // Родитель
+    FiboNode* child;         // Первый ребенок
+    FiboNode* left;          // Левый сосед
+    FiboNode* right;         // Правый сосед
+    bool mark;               // Признак обрезания
+    int degree;              // Число детей
+
+    FiboNode(int k) : key(k), parent(nullptr), child(nullptr),
+                      left(this), right(this), mark(false), degree(0) {}
+};
+
+// Сама куча Фибоначчи
+class FibonacciHeap {
+private:
+    FiboNode* minNode;           // Минимальный узел
+    int size;                    // Размер кучи
+
+    // Объединение двух деревьев
+    FiboNode* link(FiboNode* y, FiboNode* x) {
+        y->parent = x;
+        y->mark = false;
+        if (x->child == nullptr) {
+            x->child = y;
+        } else {
+            y->right = x->child->right;
+            y->left = x->child;
+            x->child->right->left = y;
+            x->child->right = y;
+        }
+        x->degree++;
+        return x;
+    }
+
+    // Приведение к правильному виду (консолидация)
+    void consolidate() {
+        std::vector<FiboNode*> degreeNodes(ceil(log2(size)), nullptr);
+        auto curr = minNode;
+        do {
+            FiboNode* x = curr;
+            int d = x->degree;
+            while (degreeNodes[d] != nullptr) {
+                FiboNode* y = degreeNodes[d];
+                if (y->key < x->key) std::swap(x, y);
+                if (curr == y) curr = y->right;
+                link(y, x);
+                degreeNodes[d++] = nullptr;
+            }
+            degreeNodes[d] = x;
+            curr = curr->right;
+        } while (curr != minNode);
+
+        minNode = nullptr;
+        for (FiboNode* node : degreeNodes) {
+            if (node != nullptr) {
+                if (minNode == nullptr) {
+                    minNode = node;
+                } else {
+                    node->right = minNode->right;
+                    node->left = minNode;
+                    minNode->right->left = node;
+                    minNode->right = node;
+                    if (node->key < minNode->key) minNode = node;
+                }
+            }
+        }
+    }
+
+    // Отрезание узла от родителя
+    void cut(FiboNode* x, FiboNode* y) {
+        if (x->right == x) y->child = nullptr;
+        else {
+            x->right->left = x->left;
+            x->left->right = x->right;
+            if (y->child == x) y->child = x->right;
+        }
+        y->degree--;
+        x->parent = nullptr;
+        x->mark = false;
+        addToRootList(x);
+    }
+
+    // Каскаденное отрезание
+    void cascadingCut(FiboNode* y) {
+        FiboNode* z = y->parent;
+        if (z != nullptr) {
+            if (y->mark == false) y->mark = true;
+            else {
+                cut(y, z);
+                cascadingCut(z);
+            }
+        }
+    }
+
+    // Добавление узла в список корней
+    void addToRootList(FiboNode* node) {
+        if (minNode == nullptr) {
+            minNode = node;
+        } else {
+            node->right = minNode->right;
+            node->left = minNode;
+            minNode->right->left = node;
+            minNode->right = node;
+            if (node->key < minNode->key) minNode = node;
+        }
+    }
+
+public:
+    FibonacciHeap() : minNode(nullptr), size(0) {}
+
+    // Вставка нового элемента
+    void insert(int key) {
+        FiboNode* newNode = new FiboNode(key);
+        addToRootList(newNode);
+        size++;
+    }
+
+    // Поиск минимального элемента
+    int findMin() const {
+        if (minNode == nullptr) throw std::runtime_error("Heap is empty.");
+        return minNode->key;
+    }
+
+    // Извлечение минимального элемента
+    int extractMin() {
+        if (minNode == nullptr) throw std::runtime_error("Heap is empty.");
+        FiboNode* z = minNode;
+        int res = z->key;
+        if (z->child != nullptr) {
+            FiboNode* child = z->child;
+            do {
+                FiboNode* next = child->right;
+                addToRootList(child);
+                child->parent = nullptr;
+                child = next;
+            } while (child != z->child);
+        }
+        removeFromRootList(z);
+        if (z == z->right) minNode = nullptr;
+        else {
+            minNode = z->right;
+            consolidate();
+        }
+        delete z;
+        size--;
+        return res;
+    }
+
+    // Уменьшить ключ
+    void decreaseKey(FiboNode* x, int newValue) {
+        if (newValue > x->key) throw std::invalid_argument("New key must be smaller!");
+        x->key = newValue;
+        FiboNode* y = x->parent;
+        if (y != nullptr && x->key < y->key) {
+            cut(x, y);
+            cascadingCut(y);
+        }
+        if (x->key < minNode->key) minNode = x;
+    }
+
+    // Удаление узла
+    void remove(FiboNode* x) {
+        decreaseKey(x, INT_MIN);
+        extractMin();
+    }
+
+    // Очистка кучи
+    void clear() {
+        if (minNode != nullptr) {
+            FiboNode* curr = minNode;
+            do {
+                FiboNode* next = curr->right;
+                deleteSubtree(curr);
+                curr = next;
+            } while (curr != minNode);
+        }
+        minNode = nullptr;
+        size = 0;
+    }
+
+    // Удаление всего поддерева рекурсивно
+    void deleteSubtree(FiboNode* node) {
+        if (node == nullptr) return;
+        FiboNode* child = node->child;
+        while (child != nullptr) {
+            FiboNode* next = child->right;
+            deleteSubtree(child);
+            child = next;
+        }
+        delete node;
+    }
+
+    // Удаление узла из списка корней
+    void removeFromRootList(FiboNode* node) {
+        if (node->right == node) {
+            minNode = nullptr;
+        } else {
+            node->right->left = node->left;
+            node->left->right = node->right;
+            if (minNode == node) minNode = node->right;
+        }
+    }
+};
+
+// Пример использования
+int main() {
+    FibonacciHeap fh;
+    fh.insert(10);
+    fh.insert(20);
+    fh.insert(5);
+    fh.insert(15);
+
+    std::cout << "Минимальный элемент: " << fh.findMin() << std::endl;  
+
+    std::cout << "Извлечено: " << fh.extractMin() << std::endl;         
+
+    std::cout << "Новый минимальный элемент: " << fh.findMin() << std::endl;  
+
+    return 0;
+}
+
+//Вывод
+//Минимальный элемент: 5
+//Извлечено: 5
+//Новый минимальный элемент: 10
+
+//Хэш-таблица
+
+#include <iostream>
+#include <vector>
+#include <list>
+#include <string>
+
+// Пара ключ-значение
+template<typename K, typename V>
+struct Entry {
+    K key;
+    V value;
+    Entry(K k, V v) : key(k), value(v) {}
+};
+
+// Класс хэш-таблицы
+template<typename K, typename V>
+class HashTable {
+private:
+    using BucketType = std::list<Entry<K, V>>;
+    std::vector<BucketType> table; // Таблица ведер
+    size_t size;                  // Текущий размер таблиц
+
+    // Простая хэш-функция (можно заменить на лучшую)
+    size_t hashFunction(const K& key) const {
+        return std::hash<K>{}(key) % table.size();
+    }
+
+public:
+    HashTable(size_t initialSize = 10) : table(initialSize), size(0) {}
+
+    // Вставка пары ключ-значение
+    void insert(const K& key, const V& value) {
+        size_t index = hashFunction(key);
+        auto& bucket = table[index]; // Ведро, куда попадает элемент
+        for(auto it = bucket.begin(); it != bucket.end(); ++it) {
+            if(it->key == key) {
+                // Если ключ уже есть, обновляем значение
+                it->value = value;
+                return;
+            }
+        }
+        // Иначе добавляем новый элемент
+        bucket.emplace_front(key, value);
+        size++;
+    }
+
+    // Поиск значения по ключу
+    V* search(const K& key) {
+        size_t index = hashFunction(key);
+        auto& bucket = table[index];
+        for(auto it = bucket.begin(); it != bucket.end(); ++it) {
+            if(it->key == key) {
+                return &(it->value);
+            }
+        }
+        return nullptr;
+    }
+
+    // Удаление элемента по ключу
+    void erase(const K& key) {
+        size_t index = hashFunction(key);
+        auto& bucket = table[index];
+        for(auto it = bucket.begin(); it != bucket.end(); ++it) {
+            if(it->key == key) {
+                bucket.erase(it);
+                size--;
+                return;
+            }
+        }
+    }
+
+    // Размер таблицы
+    size_t getSize() const {
+        return size;
+    }
+
+    // Пустой ли объект?
+    bool isEmpty() const {
+        return size == 0;
+    }
+};
+
+// Пример использования
+int main() {
+    HashTable<std::string, int> ht;
+
+    // Вставка данных
+    ht.insert("Alice", 25);
+    ht.insert("Bob", 30);
+    ht.insert("Charlie", 35);
+
+    // Поиск
+    int* age = ht.search("Alice");
+    if(age) {
+        std::cout << "Age of Alice: " << *age << std::endl;
+    }
+
+    // Удаление
+    ht.erase("Bob");
+
+    // Повторный поиск
+    age = ht.search("Bob");
+    if(!age) {
+        std::cout << "Bob was removed." << std::endl;
+    }
+
+    return 0;
+}
+
+//Вывод
+//Age of Alice: 25
+//Bob was removed.
