@@ -1,0 +1,23 @@
+# Мультисписок
+multilist = [[1, 2 [3, 4, 5], [6]]
+
+# Очередь 
+from collections import deque
+queue = deque()
+queue.append(10)    # добавление в конец
+queue.popleft()     # удаление из начала
+
+# Дек (двунаправленная очередь)
+deque_struct = deque()
+deque_struct.appendleft(1)  # добавление в начало
+deque_struct.append(2)      # добавление в конец
+deque_struct.popleft()      # удаление из начала
+deque_struct.pop()          # удаление из конца
+
+# Приоритетная очередь 
+import heapq
+heap = []
+heapq.heappush(heap, 5)
+heapq.heappush(heap, 2)
+heapq.heappush(heap, 8)
+min_element = heapq.heappop(heap)  # извлечение минимального
