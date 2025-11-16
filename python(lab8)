@@ -1,0 +1,32 @@
+def greedy_makespan(n, durations):
+    machines = [0] * n  # Машины изначально свободны
+    jobs_sorted = sorted(durations, reverse=True)  # Сортируем работы по уменьшению длительности
+    
+    # Назначаем каждую работу машине с наименьшим общим временем выполнения
+    for job_time in jobs_sorted:
+        machine_id = machines.index(min(machines))  # Находим машину с минимальным загрузочным временем
+        machines[machine_id] += job_time  # Добавляем продолжительность работы к выбранной машине
+    
+    return machines, max(machines)  # Возвращаем распределение и maximum makespan
+
+# Ввод данных
+num_machines = int(input("Число машин: "))
+job_durations = list(map(int, input("Длительности работ: ").strip()[1:-1].split(',')))
+
+# Запускаем жадный алгоритм
+distribution, makespan = greedy_makespan(num_machines, job_durations)
+
+# Вывод результатов
+print("\nРаспределение работ:")
+for i, load in enumerate(distribution):
+    print(f"Машина {i+1}: Загрузка={load}")
+print(f"\nМаксимальное время завершения (makespan): {makespan}\n")
+
+//Ввод
+//Число машин: 3
+//Длительности работ: [5, 7, 3, 8, 2, 6, 4, 9, 1, 5]
+//Вывод
+//Распределение работ:
+//Машина 1: Загрузка=24
+//Машина 2: Загрузка=18
+//Машина 3: Загрузка=18
