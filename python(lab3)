@@ -1,0 +1,454 @@
+//Бинарная куча
+class BinaryHeap:
+    def __init__(self):
+        # Изначально пустая куча представляется списком
+        self.heap_list = []
+        
+    def parent(self, i):
+        """Возвращает индекс родительского узла"""
+        return (i - 1) // 2
+    
+    def left_child(self, i):
+        """Возвращает индекс левого ребенка"""
+        return 2 * i + 1
+    
+    def right_child(self, i):
+        """Возвращает индекс правого ребенка"""
+        return 2 * i + 2
+    
+    def sift_up(self, index):
+        """
+        Поднимает элемент вверх, пока не восстановлена кучность
+        (если элемент меньше родителя)
+        """
+        while index != 0 and self.heap_list[self.parent(index)] > self.heap_list[index]:
+            # Меняем местами элемент и его родителя
+            self.heap_list[self.parent(index)], self.heap_list[index] = (
+                self.heap_list[index], self.heap_list[self.parent(index)]
+            )
+            index = self.parent(index)
+            
+    def sift_down(self, index):
+        """
+        Спускает элемент вниз, пока не восстановлена кучность
+        (если какой-то ребенок меньше текущего элемента)
+        """
+        size = len(self.heap_list)
+        min_index = index
+        
+        l = self.left_child(index)
+        if l < size and self.heap_list[l] < self.heap_list[min_index]:
+            min_index = l
+            
+        r = self.right_child(index)
+        if r < size and self.heap_list[r] < self.heap_list[min_index]:
+            min_index = r
+            
+        if index != min_index:
+            # Если найдена меньшая вершина среди детей,
+            # меняем её местами с текущим элементом
+            self.heap_list[index], self.heap_list[min_index] = (
+                self.heap_list[min_index], self.heap_list[index]
+            )
+            self.sift_down(min_index)
+            
+    def insert(self, value):
+        """Вставляем новый элемент в конец и поднимаем его вверх"""
+        self.heap_list.append(value)
+        last_index = len(self.heap_list) - 1
+        self.sift_up(last_index)
+        
+    def peek(self):
+        """Получаем минимальное значение без удаления"""
+        if not self.is_empty():
+            return self.heap_list[0]
+        else:
+            raise IndexError('Heap is empty')
+        
+    def extract_min(self):
+        """Удаление минимального элемента и восстановление структуры кучи"""
+        if not self.is_empty():
+            result = self.heap_list[0]
+            # Перемещаем последний элемент наверх и восстанавливаем структуру
+            self.heap_list[0] = self.heap_list[-1]
+            del self.heap_list[-1]
+            self.sift_down(0)
+            return result
+        else:
+            raise IndexError('Heap is empty')
+ 
+    def is_empty(self):
+        """Проверка, пуста ли куча"""
+        return len(self.heap_list) == 0
+
+
+# Тестирование нашей реализации
+if __name__ == "__main__":
+    bh = BinaryHeap()
+    for num in [10, 8, 6, 4, 2, 1]:
+        bh.insert(num)
+    print(bh.peek())       
+    print(bh.extract_min()) # Удаляется минимальный элемент
+    print(bh.peek())       # Теперь должно вернуть следующий минимальный элемент
+
+//Вывод
+//1
+//1
+//2
+
+//Биноминальная куча
+
+class BinomialNode:
+    def __init__(self, key):
+        self.key = key
+        self.parent = None
+        self.children = []   # Список дочерних вершин
+        self.degree = 0      # Степень вершины (число детей)
+
+class BinomialHeap:
+    def __init__(self):
+        self.trees = []     # Лист деревьев в куче
+
+    def _link(self, y, x):
+        """Связываем два дерева, делая одно ребёнком другого."""
+        y.parent = x
+        x.children.append(y)
+        x.degree += 1
+
+    def merge(self, other_heap):
+        """Объединение двух биноминальных куч."""
+        merged_trees = sorted(self.trees + other_heap.trees, key=lambda node: node.degree)
+        self.trees.clear()
+
+        temp = []
+        current_degree = -1
+        carry_over = None
+
+        for tree in merged_trees:
+            degree = tree.degree
+            if degree != current_degree:
+                temp.extend([carry_over])
+                carry_over = tree
+                current_degree = degree
+            elif carry_over:
+                self._link(carry_over, tree)
+                carry_over = None
+                current_degree = -1
+            else:
+                carry_over = tree
+                
+        temp.extend([carry_over]) if carry_over else None
+        self.trees = list(filter(None, temp))
+
+    def insert(self, key):
+        """Вставка нового элемента в кучу."""
+        new_tree = BinomialNode(key)
+        new_heap = BinomialHeap()
+        new_heap.trees.append(new_tree)
+        self.merge(new_heap)
+
+    def find_min(self):
+        """Нахождение минимального элемента."""
+        if not self.trees:
+            return None
+        return min((tree.key for tree in self.trees))
+
+    def extract_min(self):
+        """Извлечь минимальный элемент и перестроить кучу."""
+        if not self.trees:
+            return None
+
+        min_key = float('inf')
+        min_tree_idx = -1
+        for idx, tree in enumerate(self.trees):
+            if tree.key < min_key:
+                min_key = tree.key
+                min_tree_idx = idx
+
+        extracted_value = self.trees.pop(min_tree_idx).key
+
+        # Объединяем оставшихся детей извлечённого дерева обратно в кучу
+        remaining_children = BinomialHeap()
+        for child in self.trees[min_tree_idx].children:
+            child.parent = None
+            remaining_children.trees.append(child)
+
+        self.merge(remaining_children)
+        return extracted_value
+
+    def is_empty(self):
+        """Проверка, пуста ли куча."""
+        return len(self.trees) == 0
+
+# Пример использования
+bh = BinomialHeap()
+for num in [10, 8, 6, 4, 2, 1]:
+    bh.insert(num)
+
+print(f'Минимальный элемент: {bh.find_min()}')  
+extracted_min = bh.extract_min()
+print(f'Извлечённый минимальный элемент: {extracted_min}')  
+print(f'Новый минимальный элемент: {bh.find_min()}')  
+
+//Вывод
+//Минимальный элемент: 1
+//Извлечённый минимальный элемент: 1
+//Новый минимальный элемент: 2
+
+//Куча Фибоначчи
+
+class FibNode:
+    def __init__(self, key):
+        self.key = key
+        self.parent = None
+        self.child = None
+        self.left = self
+        self.right = self
+        self.degree = 0
+        self.mark = False
+
+class FibonacciHeap:
+    def __init__(self):
+        self.min_node = None
+        self.n = 0  # Количество узлов в куче
+
+    def make_fib_heap(self):
+        return FibonacciHeap()
+
+    def minimum(self):
+        return self.min_node
+
+    def insert(self, key):
+        new_node = FibNode(key)
+        if self.min_node is None:
+            self.min_node = new_node
+        else:
+            # Вставляем новый узел рядом с текущим минимальным
+            self.min_node.left.right = new_node
+            new_node.left = self.min_node.left
+            new_node.right = self.min_node
+            self.min_node.left = new_node
+            if new_node.key < self.min_node.key:
+                self.min_node = new_node
+        self.n += 1
+
+    def extract_min(self):
+        z = self.min_node
+        if z is not None:
+            # Разрываем связь узлов вокруг минимального элемента
+            if z.child is not None:
+                # Добавляем детей минимального элемента в кольцо корней
+                children = [z.child]
+                curr = z.child.right
+                while curr != z.child:
+                    children.append(curr)
+                    curr = curr.right
+                for child in children:
+                    child.parent = None
+                    self._add_to_root_list(child)
+            # Вынимаем сам минимальный элемент
+            self._remove_from_root_list(z)
+            if z == z.right:
+                self.min_node = None
+            else:
+                self.min_node = z.right
+                self.consolidate()
+            self.n -= 1
+        return z
+
+    def consolidate(self):
+        A = [None] * (self.n.bit_length() + 1)
+        root_list = []
+        curr = self.min_node
+        while True:
+            root_list.append(curr)
+            curr = curr.right
+            if curr == self.min_node:
+                break
+        for w in root_list:
+            d = w.degree
+            while A[d] is not None:
+                y = A[d]
+                if w.key > y.key:
+                    w, y = y, w
+                self._fib_heap_link(y, w)
+                A[d] = None
+                d += 1
+            A[d] = w
+        self.min_node = None
+        for i in range(len(A)):
+            if A[i] is not None:
+                if self.min_node is None or A[i].key < self.min_node.key:
+                    self.min_node = A[i]
+
+    def decrease_key(self, x, k):
+        if k > x.key:
+            raise ValueError("New key is greater than current key")
+        x.key = k
+        y = x.parent
+        if y is not None and x.key < y.key:
+            self._cut(x, y)
+            self._cascading_cut(y)
+        if x.key < self.min_node.key:
+            self.min_node = x
+
+    def delete(self, x):
+        self.decrease_key(x, float('-inf'))
+        self.extract_min()
+
+    def _add_to_root_list(self, node):
+        # Вставка узла в кольцо корней
+        if self.min_node is None:
+            self.min_node = node
+        else:
+            node.left = self.min_node.left
+            node.right = self.min_node
+            self.min_node.left.right = node
+            self.min_node.left = node
+            if node.key < self.min_node.key:
+                self.min_node = node
+
+    def _remove_from_root_list(self, node):
+        # Удаление узла из кольца корней
+        if node == node.right:
+            self.min_node = None
+        else:
+            node.left.right = node.right
+            node.right.left = node.left
+            if node == self.min_node:
+                self.min_node = node.right
+
+    def _fib_heap_link(self, y, x):
+        # Связываем два узла друг с другом
+        y.left.right = y.right
+        y.right.left = y.left
+        y.parent = x
+        if x.child is None:
+            x.child = y
+            y.left = y
+            y.right = y
+        else:
+            y.left = x.child.left
+            y.right = x.child
+            x.child.left.right = y
+            x.child.left = y
+        x.degree += 1
+        y.mark = False
+
+    def _cut(self, x, y):
+        # Отрезаем узел x от его родителя y
+        x.left.right = x.right
+        x.right.left = x.left
+        y.degree -= 1
+        if y.child == x:
+            y.child = x.right
+        if y.degree == 0:
+            y.child = None
+        x.parent = None
+        x.mark = False
+        self._add_to_root_list(x)
+
+    def _cascading_cut(self, y):
+        # Рекурсивно отрезаем предков
+        z = y.parent
+        if z is not None:
+            if y.mark == False:
+                y.mark = True
+            else:
+                self._cut(y, z)
+                self._cascading_cut(z)
+
+# Демонстрационный пример
+if __name__ == '__main__':
+    fib_heap = FibonacciHeap()
+    elements = [10, 3, 8, 2, 5, 1]
+    for el in elements:
+        fib_heap.insert(el)
+
+    print("Минимальный элемент:", fib_heap.minimum().key)
+    print("Извлечённый минимальный элемент:", fib_heap.extract_min().key)
+    print("Теперь минимальный элемент:", fib_heap.minimum().key)
+
+//Вывод
+//Минимальный элемент: 1
+//Извлечённый минимальный элемент: 1
+//Теперь минимальный элемент: 2
+
+//Хэш-таблицы
+
+class LinkedListNode:
+    def __init__(self, key=None, value=None, next=None):
+        self.key = key
+        self.value = value
+        self.next = next
+
+class HashTable:
+    def __init__(self, capacity=100):
+        self.capacity = capacity
+        self.table = [LinkedListNode()] * capacity  # Массив связанных списков
+
+    def hash_function(self, key):
+        # Применяем простую хэш-функцию
+        return hash(key) % self.capacity
+
+    def put(self, key, value):
+        index = self.hash_function(key)
+        head = self.table[index]
+        current = head
+        while current.next is not None:
+            if current.next.key == key:
+                # Обновляем существующее значение
+                current.next.value = value
+                return
+            current = current.next
+        # Если ключ не найден, добавляем новый узел
+        new_node = LinkedListNode(key, value)
+        current.next = new_node
+
+    def get(self, key):
+        index = self.hash_function(key)
+        head = self.table[index]
+        current = head.next
+        while current is not None:
+            if current.key == key:
+                return current.value
+            current = current.next
+        return None
+
+    def remove(self, key):
+        index = self.hash_function(key)
+        head = self.table[index]
+        previous = head
+        current = head.next
+        while current is not None:
+            if current.key == key:
+                previous.next = current.next
+                return
+            previous = current
+            current = current.next
+
+# Пример использования
+ht = HashTable()
+
+# Вставка пар ключ-значение
+ht.put("apple", 10)
+ht.put("banana", 20)
+ht.put("cherry", 30)
+
+# Получение значений
+print(ht.get("apple"))  
+print(ht.get("banana")) 
+
+# Изменение значения
+ht.put("apple", 15)
+print(ht.get("apple"))  
+
+# Удаление
+ht.remove("banana")
+print(ht.get("banana")) 
+
+//Вывод
+//10
+//20
+//15
+//None
