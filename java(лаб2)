@@ -1,0 +1,26 @@
+// Мультисписок
+List<List<Integer>> multilist = ArrayList<>();
+multilist.add(Arrays.asList(1, 2));
+ilist.add(Arrays.asList(3, 4, 5));
+multilist.add(Arrays.asList(6));
+
+// Очередь 
+Queue<Integer> queue = new LinkedList<>();
+queue.offer(10); // добавление элемента
+int frontElement = queue.peek(); // получение первого элемента
+queue.poll(); // удаление из очереди
+
+ // Дек 
+Deque<Integer> deque = ArrayDeque<>();
+deque.addFirst(0);    // добавление в
+ deque.addLast(1);     // добавление в конец
+.removeFirst(); // удаление с начала
+deque.removeLast();  удаление с конца
+
+// Приоритетная очередь 
+PriorityQueue<Integer pQueue = new PriorityQueue<>();
+pQueue.add(5);
+pQueue.add(2);
+pQueue.add(8);
+int minElem = pQueue.peek(); // минимальный элемент (по умолчанию)
+
